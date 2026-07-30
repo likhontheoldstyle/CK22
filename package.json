@@ -1,0 +1,33 @@
+{
+  "name": "facebook-account-creator-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for creating Facebook accounts with human-like behavior",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "random-useragent": "^1.1.0",
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "telegram-bot",
+    "facebook-account-creator",
+    "puppeteer",
+    "automation",
+    "facebook"
+  ],
+  "author": "RIN",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
