@@ -9,7 +9,7 @@
     "dev": "nodemon bot.js"
   },
   "dependencies": {
-    "puppeteer": "^21.0.0",
+    "puppeteer": "^22.15.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "random-useragent": "^0.5.0",
