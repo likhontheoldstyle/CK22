@@ -1,20 +1,22 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import axios from 'axios';
 import TelegramBot from 'node-telegram-bot-api';
 import fs from 'fs';
-
-puppeteer.use(StealthPlugin());
+import { randomInt } from 'crypto';
 
 const token = '8893184123:AAHwDFh7FtdhJdhYyZluhDKoE0fl7xC0yhw';
 const bot = new TelegramBot(token, { polling: true });
 
 const config = {
   name: "fbcreator",
-  description: "Facebook Account Creator",
+  description: "Facebook Account Creator (HTTP Request)",
   usage: "/fbcreate <amount> - <password>",
   cooldown: 5,
   credits: "RIN"
 };
+
+let loop = 0;
+let oks = [];
+let cps = [];
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -53,58 +55,40 @@ function getUserAgent() {
     "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
     "Mozilla/5.0 (Linux; Android 11; vivo 1918) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
     "Mozilla/5.0 (Linux; Android 12; SM-S906N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Linux; Android 13; SM-A536E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Linux; Android 13; SM-A536E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
   ];
   return agents[randomInt(0, agents.length - 1)];
 }
 
-async function humanType(page, selector, text) {
-  try {
-    await page.waitForSelector(selector, { timeout: 15000 });
-    await page.click(selector);
-    for (const char of text) {
-      if (Math.random() < 0.05) {
-        await page.type(selector, 'x', { delay: randomInt(80, 150) });
-        await page.keyboard.press('Backspace');
-      }
-      await page.type(selector, char, { delay: randomInt(80, 150) });
-    }
-  } catch (error) {
-    console.error('HumanType error:', error);
-    throw error;
-  }
-}
+function extractTokens(html) {
+  const lsd = html.match(/name="lsd" value="(.*?)"/);
+  const jazoest = html.match(/name="jazoest" value="(.*?)"/);
+  const m_ts = html.match(/name="m_ts" value="(.*?)"/);
+  const reg_instance = html.match(/"reg_instance":"(.*?)"/);
+  const reg_impression_id = html.match(/"reg_impression_id":"(.*?)"/);
+  const logger_id = html.match(/"logger_id":"(.*?)"/);
 
-async function humanMove(page) {
-  await page.mouse.move(randomInt(0, 500), randomInt(0, 500));
-  await page.mouse.move(randomInt(0, 800), randomInt(0, 800), { steps: randomInt(5, 15) });
-  await page.evaluate(() => window.scrollBy(0, Math.random() * 200));
-  await new Promise(resolve => setTimeout(resolve, randomInt(500, 1500)));
+  return {
+    lsd: lsd ? lsd[1] : "0",
+    jazoest: jazoest ? jazoest[1] : "0",
+    m_ts: m_ts ? m_ts[1] : "0",
+    reg_instance: reg_instance ? reg_instance[1] : "",
+    reg_impression_id: reg_impression_id ? reg_impression_id[1] : "",
+    logger_id: logger_id ? logger_id[1] : ""
+  };
 }
 
 async function createFacebookAccount() {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--disable-gpu',
-      '--window-size=1920,1080',
-      '--disable-blink-features=AutomationControlled'
-    ]
-  });
-
-  let result = null;
-
   try {
-    const page = await browser.newPage();
-    await page.setUserAgent(getUserAgent());
-    await page.setViewport({ width: 1920, height: 1080 });
-    await page.emulateTimezone('Asia/Dhaka');
+    const session = axios.create({
+      headers: {
+        'User-Agent': getUserAgent(),
+        'Accept': '*/*',
+        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+      },
+      timeout: 20000,
+      maxRedirects: 5
+    });
 
     const name = randomName();
     const firstname = name.split(' ')[0];
@@ -113,74 +97,93 @@ async function createFacebookAccount() {
     const email = randomEmail(firstname, lastname);
     const password = genPassword(12);
 
-    await page.goto('https://m.facebook.com/reg/', {
-      waitUntil: 'networkidle2',
-      timeout: 60000
-    });
+    const homeRes = await session.get('https://m.facebook.com/reg/');
+    const tokens = extractTokens(homeRes.data);
 
-    await page.waitForSelector('form[method="post"]', { timeout: 30000 });
-    await humanMove(page);
+    const payload = {
+      lsd: tokens.lsd,
+      jazoest: tokens.jazoest,
+      m_ts: tokens.m_ts,
+      ccp: '2',
+      reg_instance: tokens.reg_instance,
+      submission_request: 'true',
+      reg_impression_id: tokens.reg_impression_id,
+      logger_id: tokens.logger_id,
+      firstname: firstname,
+      lastname: lastname,
+      birthday_day: dob.day.toString(),
+      birthday_month: dob.month.toString(),
+      birthday_year: dob.year.toString(),
+      reg_email__: email,
+      sex: randomInt(1, 2).toString(),
+      reg_passwd__: password,
+      submit: 'Sign Up',
+      encpass: `#PWD_BROWSER:0:${Math.floor(Date.now() / 1000)}:${password}`,
+      __user: '0',
+      __a: '1',
+      __req: '1',
+      __hs: '1',
+      dpr: '2',
+      __spin_r: randomInt(1000000, 9999999).toString(),
+      __spin_t: Math.floor(Date.now() / 1000).toString(),
+      __rev: randomInt(1000000, 9999999).toString()
+    };
 
-    await humanType(page, 'input[name="firstname"]', firstname);
-    await humanType(page, 'input[name="lastname"]', lastname);
-    await humanType(page, 'input[name="reg_email__"]', email);
-    await humanType(page, 'input[name="reg_passwd__"]', password);
+    const headers = {
+      'Host': 'm.facebook.com',
+      'Connection': 'keep-alive',
+      'User-Agent': getUserAgent(),
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': '*/*',
+      'Origin': 'https://m.facebook.com',
+      'X-Requested-With': 'mark.via.gp',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Dest': 'empty',
+      'Referer': 'https://m.facebook.com/reg/',
+      'Accept-Encoding': 'gzip, deflate',
+      'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
+    };
 
-    await page.select('select[name="birthday_day"]', dob.day.toString());
-    await page.select('select[name="birthday_month"]', dob.month.toString());
-    await page.select('select[name="birthday_year"]', dob.year.toString());
+    const res = await session.post(
+      'https://m.facebook.com/reg/submit/',
+      new URLSearchParams(payload).toString(),
+      { headers: headers }
+    );
 
-    const genderSelector = ['input[value="1"]', 'input[value="2"]'][randomInt(0, 1)];
-    await page.click(genderSelector);
+    const cookies = session.defaults.headers.Cookie || '';
+    const c_user = res.headers['set-cookie']?.find(c => c.includes('c_user='));
 
-    await humanMove(page);
-    await page.click('button[name="websubmit"]');
-
-    await new Promise(resolve => setTimeout(resolve, randomInt(8000, 15000)));
-
-    const cookies = await page.cookies();
-    const c_user = cookies.find(c => c.name === 'c_user');
-    
     if (c_user) {
-      const uid = c_user.value;
-      const cookieString = cookies.map(c => `${c.name}=${c.value}`).join(';');
-      
-      result = {
-        uid: uid,
-        name: name,
-        email: email,
-        password: password,
-        dob: dob,
-        cookie: cookieString,
-        status: "Success"
-      };
+      const uid = c_user.match(/c_user=(\d+)/)?.[1];
+      if (uid) {
+        const cookieString = res.headers['set-cookie']?.join('; ') || '';
+        const result = {
+          uid: uid,
+          name: name,
+          email: email,
+          password: password,
+          dob: dob,
+          cookie: cookieString,
+          status: "Success"
+        };
 
-      const logData = `${uid}|${password}|${cookieString}\n`;
-      fs.appendFileSync('FB-OK.txt', logData);
-      
-      console.log(`✅ Created: ${uid} | ${email}`);
-    } else {
-      result = {
-        name: name,
-        email: email,
-        password: password,
-        status: "Failed - No UID found"
-      };
+        fs.appendFileSync('FB-OK.txt', `${uid}|${password}|${cookieString}\n`);
+        return result;
+      }
     }
 
-    return result;
-  } catch (error) {
-    console.error('Create account error:', error);
     return null;
-  } finally {
-    await browser.close();
+  } catch (error) {
+    console.error('Error:', error.message);
+    return null;
   }
 }
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId,
-    `🤖 Facebook Account Creator Bot\n\n` +
+    `🤖 Facebook Account Creator Bot (HTTP Request)\n\n` +
     `📌 Commands:\n` +
     `/fbcreate <amount> - <password> - Create accounts\n` +
     `/help - Show help\n` +
@@ -194,7 +197,7 @@ bot.onText(/\/help/, (msg) => {
   bot.sendMessage(chatId,
     `📖 Help:\n\n` +
     `🔹 /fbcreate <amount> - <password>\n` +
-    `   Creates Facebook accounts\n` +
+    `   Creates Facebook accounts using HTTP requests\n` +
     `   Example: /fbcreate 3 - pass123\n\n` +
     `🔹 /start - Start bot\n` +
     `🔹 /help - Show help\n` +
@@ -207,8 +210,8 @@ bot.onText(/\/about/, (msg) => {
   bot.sendMessage(chatId,
     `ℹ️ Facebook Account Creator Bot\n` +
     `👤 Credits: RIN\n` +
-    `🛠️ Version: 2.0.0\n` +
-    `📝 Creates accounts with human-like behavior`
+    `🛠️ Version: 3.0.0\n` +
+    `📝 Uses HTTP requests (No browser)`
   );
 });
 
@@ -233,7 +236,7 @@ bot.onText(/\/fbcreate (.+)/, async (msg, match) => {
   let results = [];
   let success = 0;
 
-  await bot.sendMessage(chatId, `🔄 Creating ${amount} account(s)...`);
+  await bot.sendMessage(chatId, `🔄 Creating ${amount} account(s) with HTTP requests...`);
 
   for (let i = 0; i < amount; i++) {
     try {
@@ -278,5 +281,6 @@ bot.on('error', (error) => {
 
 console.log('🤖 Facebook Account Creator Bot is running...');
 console.log('📝 Accounts will be saved to FB-OK.txt');
+console.log('💡 Using HTTP requests (No browser required)');
 
 export default { bot, config };
