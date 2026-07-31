@@ -67,7 +67,8 @@ async function createFacebookAccount(name, dob, email, password) {
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
       '--disable-gpu',
-      '--window-size=1920,1080'
+      '--window-size=1920,1080',
+      '--disable-blink-features=AutomationControlled'
     ]
   });
 
@@ -79,15 +80,12 @@ async function createFacebookAccount(name, dob, email, password) {
     await page.setViewport({ width: 1920, height: 1080 });
     await page.emulateTimezone('Asia/Dhaka');
     
-    await page.goto('https://www.facebook.com/', { 
+    await page.goto('https://www.facebook.com/r.php', { 
       waitUntil: 'networkidle2', 
       timeout: 60000 
     });
 
-    await page.waitForSelector('a[data-testid="open-registration-form-button"]', { timeout: 15000 });
-    await page.click('a[data-testid="open-registration-form-button"]');
-    
-    await page.waitForSelector('form[method="post"]', { timeout: 15000 });
+    await page.waitForSelector('form[method="post"]', { timeout: 30000 });
     await humanMove(page);
     
     await humanType(page, 'input[name="firstname"]', name.split(' ')[0]);
