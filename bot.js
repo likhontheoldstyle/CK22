@@ -66,7 +66,8 @@ async function createFacebookAccount(name, dob, email, password) {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--window-size=1920,1080'
     ]
   });
 
@@ -75,27 +76,25 @@ async function createFacebookAccount(name, dob, email, password) {
   try {
     const page = await browser.newPage();
     await page.setUserAgent(randomUseragent.getRandom() || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-    await page.setViewport({ width: randomInt(1024, 1920), height: randomInt(768, 1080) });
-    await page.emulateTimezone(['Asia/Dhaka', 'Asia/Kolkata'][randomInt(0, 1)]);
-    await page.goto('https://www.facebook.com/r.php', { 
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.emulateTimezone('Asia/Dhaka');
+    
+    await page.goto('https://www.facebook.com/', { 
       waitUntil: 'networkidle2', 
       timeout: 60000 
     });
 
+    await page.waitForSelector('a[data-testid="open-registration-form-button"]', { timeout: 15000 });
+    await page.click('a[data-testid="open-registration-form-button"]');
+    
     await page.waitForSelector('form[method="post"]', { timeout: 15000 });
     await humanMove(page);
+    
     await humanType(page, 'input[name="firstname"]', name.split(' ')[0]);
     await humanType(page, 'input[name="lastname"]', name.split(' ')[1]);
     await humanType(page, 'input[name="reg_email__"]', email);
-    
-    try {
-      const confirmEmail = await page.$('input[name="reg_email_confirmation__"]');
-      if (confirmEmail) {
-        await humanType(page, 'input[name="reg_email_confirmation__"]', email);
-      }
-    } catch (e) {}
-
     await humanType(page, 'input[name="reg_passwd__"]', password);
+    
     await page.select('select[name="birthday_day"]', dob.day.toString());
     await page.select('select[name="birthday_month"]', dob.month.toString());
     await page.select('select[name="birthday_year"]', dob.year.toString());
@@ -103,6 +102,7 @@ async function createFacebookAccount(name, dob, email, password) {
     const genderSelector = ['input[value="1"]', 'input[value="2"]'][randomInt(0, 1)];
     await page.click(genderSelector);
     await humanMove(page);
+    
     await page.click('button[name="websubmit"]');
     await new Promise(resolve => setTimeout(resolve, randomInt(8000, 12000)));
 
