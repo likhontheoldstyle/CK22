@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import randomUseragent from 'random-useragent';
 import TelegramBot from 'node-telegram-bot-api';
+import fs from 'fs';
 
 puppeteer.use(StealthPlugin());
 
@@ -9,11 +9,10 @@ const token = '8893184123:AAHwDFh7FtdhJdhYyZluhDKoE0fl7xC0yhw';
 const bot = new TelegramBot(token, { polling: true });
 
 const config = {
-  name: "ck22",
-  description: "Create Facebook accounts (Bangladeshi girls names)",
-  usage: "/cfb <number> - <password>",
+  name: "fbcreator",
+  description: "Facebook Account Creator",
+  usage: "/fbcreate <amount> - <password>",
   cooldown: 5,
-  permissions: [0, 1, 2],
   credits: "RIN"
 };
 
@@ -22,28 +21,55 @@ function randomInt(min, max) {
 }
 
 function randomDate() {
-  const year = randomInt(1988, 2003);
+  const year = randomInt(1990, 2005);
   const month = randomInt(1, 12);
   const day = randomInt(1, 28);
   return { day, month, year };
 }
 
 function randomName() {
-  const firstNames = ["Mahi", "Tania", "Sumaiya", "Anika", "Mim", "Jannat", "Sadia", "Tasmia", "Raisa", "Nusrat", "Labiba", "Tahia"];
-  const lastNames = ["Akter", "Khan", "Jahan", "Chowdhury", "Rahman", "Haque", "Sultana", "Begum"];
+  const firstNames = ["Mahi", "Tania", "Sumaiya", "Anika", "Mim", "Jannat", "Sadia", "Tasmia", "Raisa", "Nusrat", "Labiba", "Tahia", "Alex", "John", "Michael", "David", "James", "William", "Daniel", "Matthew", "Ethan", "Noah", "Liam", "Mason", "Lucas", "Oliver", "Ava", "Emma", "Sophia", "Isabella", "Mia", "Charlotte", "Amelia", "Harper", "Evelyn", "Abigail", "Emily", "Elizabeth", "Sofia", "Avery", "Ella", "Scarlett", "Grace", "Chloe", "Victoria", "Riley", "Zoey", "Penelope", "Layla", "Nora", "Mila", "Aurora", "Violet", "Hannah"];
+  const lastNames = ["Akter", "Khan", "Jahan", "Chowdhury", "Rahman", "Haque", "Sultana", "Begum", "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White", "Harris", "Clark", "Lewis", "Robinson", "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Campbell", "Mitchell", "Carter", "Roberts"];
   return `${firstNames[randomInt(0, firstNames.length - 1)]} ${lastNames[randomInt(0, lastNames.length - 1)]}`;
+}
+
+function randomEmail(firstname, lastname) {
+  const domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+  const domain = domains[randomInt(0, domains.length - 1)];
+  return `${firstname.toLowerCase()}${lastname.toLowerCase()}${randomInt(100, 99999)}@${domain}`;
+}
+
+function genPassword(length = 12) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(randomInt(0, chars.length - 1));
+  }
+  return password;
+}
+
+function getUserAgent() {
+  const agents = [
+    "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 11; vivo 1918) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 12; SM-S906N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 13; SM-A536E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  ];
+  return agents[randomInt(0, agents.length - 1)];
 }
 
 async function humanType(page, selector, text) {
   try {
-    await page.waitForSelector(selector, { timeout: 10000 });
+    await page.waitForSelector(selector, { timeout: 15000 });
     await page.click(selector);
     for (const char of text) {
       if (Math.random() < 0.05) {
-        await page.type(selector, 'x', { delay: randomInt(100, 180) });
+        await page.type(selector, 'x', { delay: randomInt(80, 150) });
         await page.keyboard.press('Backspace');
       }
-      await page.type(selector, char, { delay: randomInt(100, 180) });
+      await page.type(selector, char, { delay: randomInt(80, 150) });
     }
   } catch (error) {
     console.error('HumanType error:', error);
@@ -58,11 +84,11 @@ async function humanMove(page) {
   await new Promise(resolve => setTimeout(resolve, randomInt(500, 1500)));
 }
 
-async function createFacebookAccount(name, dob, email, password) {
+async function createFacebookAccount() {
   const browser = await puppeteer.launch({
     headless: true,
     args: [
-      '--no-sandbox', 
+      '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
@@ -72,51 +98,77 @@ async function createFacebookAccount(name, dob, email, password) {
     ]
   });
 
-  let uid = null;
+  let result = null;
 
   try {
     const page = await browser.newPage();
-    await page.setUserAgent(randomUseragent.getRandom() || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+    await page.setUserAgent(getUserAgent());
     await page.setViewport({ width: 1920, height: 1080 });
     await page.emulateTimezone('Asia/Dhaka');
-    
-    await page.goto('https://www.facebook.com/r.php', { 
-      waitUntil: 'networkidle2', 
-      timeout: 60000 
+
+    const name = randomName();
+    const firstname = name.split(' ')[0];
+    const lastname = name.split(' ')[1];
+    const dob = randomDate();
+    const email = randomEmail(firstname, lastname);
+    const password = genPassword(12);
+
+    await page.goto('https://m.facebook.com/reg/', {
+      waitUntil: 'networkidle2',
+      timeout: 60000
     });
 
     await page.waitForSelector('form[method="post"]', { timeout: 30000 });
     await humanMove(page);
-    
-    await humanType(page, 'input[name="firstname"]', name.split(' ')[0]);
-    await humanType(page, 'input[name="lastname"]', name.split(' ')[1]);
+
+    await humanType(page, 'input[name="firstname"]', firstname);
+    await humanType(page, 'input[name="lastname"]', lastname);
     await humanType(page, 'input[name="reg_email__"]', email);
     await humanType(page, 'input[name="reg_passwd__"]', password);
-    
+
     await page.select('select[name="birthday_day"]', dob.day.toString());
     await page.select('select[name="birthday_month"]', dob.month.toString());
     await page.select('select[name="birthday_year"]', dob.year.toString());
 
     const genderSelector = ['input[value="1"]', 'input[value="2"]'][randomInt(0, 1)];
     await page.click(genderSelector);
-    await humanMove(page);
-    
-    await page.click('button[name="websubmit"]');
-    await new Promise(resolve => setTimeout(resolve, randomInt(8000, 12000)));
 
-    const currentUrl = page.url();
-    if (currentUrl.includes('confirm') || currentUrl.includes('checkpoint')) {
-      const cookies = await page.cookies();
-      const c_user = cookies.find(c => c.name === 'c_user');
-      if (c_user) uid = c_user.value;
-      return { email, password, name, dob, uid, status: "Account created, needs verification" };
-    }
+    await humanMove(page);
+    await page.click('button[name="websubmit"]');
+
+    await new Promise(resolve => setTimeout(resolve, randomInt(8000, 15000)));
 
     const cookies = await page.cookies();
     const c_user = cookies.find(c => c.name === 'c_user');
-    if (c_user) uid = c_user.value;
+    
+    if (c_user) {
+      const uid = c_user.value;
+      const cookieString = cookies.map(c => `${c.name}=${c.value}`).join(';');
+      
+      result = {
+        uid: uid,
+        name: name,
+        email: email,
+        password: password,
+        dob: dob,
+        cookie: cookieString,
+        status: "Success"
+      };
 
-    return { email, password, name, dob, uid, status: "Account created" };
+      const logData = `${uid}|${password}|${cookieString}\n`;
+      fs.appendFileSync('FB-OK.txt', logData);
+      
+      console.log(`✅ Created: ${uid} | ${email}`);
+    } else {
+      result = {
+        name: name,
+        email: email,
+        password: password,
+        status: "Failed - No UID found"
+      };
+    }
+
+    return result;
   } catch (error) {
     console.error('Create account error:', error);
     return null;
@@ -127,95 +179,97 @@ async function createFacebookAccount(name, dob, email, password) {
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 
-    `🤖 Welcome to Facebook Account Creator Bot!\n\n` +
+  bot.sendMessage(chatId,
+    `🤖 Facebook Account Creator Bot\n\n` +
     `📌 Commands:\n` +
-    `/cfb <number> - <password> - Create Facebook accounts\n` +
-    `/help - Show this message\n` +
-    `/about - About this bot\n\n` +
-    `Example: /cfb 5 - MyPass123`
+    `/fbcreate <amount> - <password> - Create accounts\n` +
+    `/help - Show help\n` +
+    `/about - About\n\n` +
+    `Example: /fbcreate 5 - MyPass123`
   );
 });
 
 bot.onText(/\/help/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 
-    `📖 Help Menu:\n\n` +
-    `🔹 /cfb <number> - <password>\n` +
-    `   Creates Facebook accounts with Bangladeshi girls names\n` +
-    `   Example: /cfb 3 - pass123\n\n` +
-    `🔹 /start - Start the bot\n` +
-    `🔹 /help - Show this help\n` +
-    `🔹 /about - About this bot`
+  bot.sendMessage(chatId,
+    `📖 Help:\n\n` +
+    `🔹 /fbcreate <amount> - <password>\n` +
+    `   Creates Facebook accounts\n` +
+    `   Example: /fbcreate 3 - pass123\n\n` +
+    `🔹 /start - Start bot\n` +
+    `🔹 /help - Show help\n` +
+    `🔹 /about - About bot`
   );
 });
 
 bot.onText(/\/about/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 
-    `ℹ️ About Bot:\n\n` +
-    `📱 Facebook Account Creator Bot\n` +
+  bot.sendMessage(chatId,
+    `ℹ️ Facebook Account Creator Bot\n` +
     `👤 Credits: RIN\n` +
-    `🛠️ Version: 1.0.0\n` +
-    `📝 Description: Creates Facebook accounts with human-like behavior`
+    `🛠️ Version: 2.0.0\n` +
+    `📝 Creates accounts with human-like behavior`
   );
 });
 
-bot.onText(/\/cfb (.+)/, async (msg, match) => {
+bot.onText(/\/fbcreate (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const args = match[1].split(' ');
-  
+
   if (args.length < 3) {
-    return bot.sendMessage(chatId, "❌ Usage: /cfb <number> - <password>");
+    return bot.sendMessage(chatId, "❌ Usage: /fbcreate <amount> - <password>");
   }
 
-  const numberCount = parseInt(args[0]);
-  if (isNaN(numberCount) || numberCount <= 0) {
-    return bot.sendMessage(chatId, "❌ Please enter a valid number.");
+  const amount = parseInt(args[0]);
+  if (isNaN(amount) || amount <= 0 || amount > 10) {
+    return bot.sendMessage(chatId, "❌ Please enter valid amount (1-10)");
   }
 
   if (args[1] !== '-') {
-    return bot.sendMessage(chatId, "❌ Use format: /cfb <number> - <password>");
+    return bot.sendMessage(chatId, "❌ Use format: /fbcreate <amount> - <password>");
   }
 
-  const password = args[2];
+  const customPassword = args[2];
   let results = [];
-  
-  await bot.sendMessage(chatId, `🔄 Starting to create ${numberCount} account(s)...`);
+  let success = 0;
 
-  for (let i = 0; i < numberCount; i++) {
-    const name = randomName();
-    const dob = randomDate();
-    const email = `${name.split(' ')[0].toLowerCase()}${randomInt(100, 999)}${randomInt(1000, 9999)}@gmail.com`;
+  await bot.sendMessage(chatId, `🔄 Creating ${amount} account(s)...`);
 
-    await bot.sendMessage(chatId, `🔄 Creating account ${i + 1} with email: ${email}`);
-
+  for (let i = 0; i < amount; i++) {
     try {
-      const createResult = await createFacebookAccount(name, dob, email, password);
-      if (!createResult) {
-        await bot.sendMessage(chatId, `❌ Failed to create account ${i + 1}`);
-        continue;
+      const result = await createFacebookAccount();
+      
+      if (result && result.uid) {
+        success++;
+        results.push(result);
+        await bot.sendMessage(chatId, 
+          `✅ Account ${i+1} created!\n` +
+          `👤 ${result.name}\n` +
+          `📧 ${result.email}\n` +
+          `🔑 ${result.password}\n` +
+          `🆔 ${result.uid}`
+        );
+      } else {
+        await bot.sendMessage(chatId, `❌ Account ${i+1} failed`);
       }
-
-      results.push(createResult);
-      await bot.sendMessage(chatId, `✅ Account ${i + 1} created successfully!`);
     } catch (error) {
-      console.error(`Account ${i+1} creation error:`, error);
-      await bot.sendMessage(chatId, `❌ Error creating account ${i + 1}`);
+      await bot.sendMessage(chatId, `❌ Error creating account ${i+1}`);
     }
   }
 
-  if (!results.length) {
-    return bot.sendMessage(chatId, "❌ No accounts were created.");
+  if (success > 0) {
+    let summary = `🎉 Created ${success} account(s):\n\n`;
+    results.forEach((r, i) => {
+      summary += `Account ${i+1}:\n`;
+      summary += `👤 ${r.name}\n`;
+      summary += `📧 ${r.email}\n`;
+      summary += `🔑 ${r.password}\n`;
+      summary += `🆔 ${r.uid}\n\n`;
+    });
+    await bot.sendMessage(chatId, summary);
+  } else {
+    await bot.sendMessage(chatId, "❌ No accounts were created.");
   }
-
-  let summary = `🎉 Created ${results.length} account(s):\n\n`;
-  results.forEach((r, i) => {
-    summary += `Account ${i + 1}:\n`;
-    summary += `👤 ${r.name}\n📧 ${r.email}\n🔑 ${r.password}\n🎂 ${r.dob.day}/${r.dob.month}/${r.dob.year}\n🆔 ${r.uid || 'Not available'}\n📌 ${r.status}\n\n`;
-  });
-
-  await bot.sendMessage(chatId, summary);
 });
 
 bot.on('error', (error) => {
@@ -223,5 +277,6 @@ bot.on('error', (error) => {
 });
 
 console.log('🤖 Facebook Account Creator Bot is running...');
+console.log('📝 Accounts will be saved to FB-OK.txt');
 
 export default { bot, config };
