@@ -1,7 +1,6 @@
 import axios from 'axios';
 import TelegramBot from 'node-telegram-bot-api';
 import fs from 'fs';
-import { randomInt } from 'crypto';
 
 const token = '8893184123:AAHwDFh7FtdhJdhYyZluhDKoE0fl7xC0yhw';
 const bot = new TelegramBot(token, { polling: true });
@@ -14,9 +13,7 @@ const config = {
   credits: "RIN"
 };
 
-let loop = 0;
 let oks = [];
-let cps = [];
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
